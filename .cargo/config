@@ -1,2 +1,2 @@
 [target.x86_64-apple-darwin]
-rustflags = ["-C", "opt-level=0", "-C", "link-args=-fuse-ld=/usr/local/bin/zld -Wl,-rpath,/Library/Developer/CommandLineTools/usr/lib"]
+rustflags = ["-C", "opt-level=0", "-C", "link-arg=-fuse-ld=/usr/local/bin/zld"]
