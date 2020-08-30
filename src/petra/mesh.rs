@@ -5,13 +5,14 @@ use bevy_render::{
 };
 
 pub fn generate_terrain_mesh() -> Mesh {
-    let mut positions: Vec<[f32; 3]> = Vec::new();
-    let mut normals: Vec<[f32; 3]> = Vec::new();
-    let mut uvs: Vec<[f32; 2]> = Vec::new();
-    let mut indices: Vec<u32> = Vec::new();
-    let mut index: usize = 0;
 
     let terrain: generation::Terrain = generation::generate_terrain_data();
+
+    let mut positions: Vec<[f32; 3]> = Vec::with_capacity(terrain.size*terrain.size);
+    let mut normals: Vec<[f32; 3]> = Vec::with_capacity(terrain.size*terrain.size);
+    let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(terrain.size*terrain.size);
+    let mut indices: Vec<u32> = Vec::with_capacity(terrain.size*terrain.size*6);
+    let mut index: usize = 0;
 
     for x in 0..terrain.size {
         for z in 0..terrain.size {

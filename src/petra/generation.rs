@@ -17,7 +17,7 @@ pub fn generate_terrain_data() -> Terrain {
     let mut data: Vec<Vec<f32>> = Vec::with_capacity(TERRAIN_SIZE);
 
     for x in 0..TERRAIN_SIZE {
-        data.push(Vec::new());
+        data.push(Vec::with_capacity(TERRAIN_SIZE));
         for z in 0..TERRAIN_SIZE {
             data[x as usize].push(
                 ((fbm.get([
