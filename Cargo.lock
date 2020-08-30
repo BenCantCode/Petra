@@ -2039,6 +2039,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d4fd5641d01c8f18a23da7b6fe29298ff4b55afcccdf78973b24cf3175fee32e"
 
 [[package]]
+name = "petra"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_fly_camera",
+ "bevy_render",
+ "noise",
+]
+
+[[package]]
 name = "pin-project"
 version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2280,16 +2290,6 @@ name = "regex-syntax"
 version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26412eb97c6b088a6997e05f69403a802a92d520de2f8e63c2b65f9e0f47c4e8"
-
-[[package]]
-name = "regionem"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_fly_camera",
- "bevy_render",
- "noise",
-]
 
 [[package]]
 name = "remove_dir_all"

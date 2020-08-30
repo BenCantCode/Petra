@@ -1,4 +1,4 @@
-use crate::regionem;
+use crate::petra;
 use bevy::prelude::*;
 use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
 
@@ -9,7 +9,7 @@ pub fn setup() {
         .add_startup_system(setup_terrain.system())
         .add_startup_system(setup_scene.system())
         .add_plugin(FlyCameraPlugin)
-        //.add_plugin(regionem::camera::CameraPlugin)
+        //.add_plugin(petra::camera::CameraPlugin)
         .run();
 }
 
@@ -19,7 +19,7 @@ fn setup_terrain(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands.spawn(PbrComponents {
-        mesh: meshes.add(regionem::mesh::generate_terrain_mesh()),
+        mesh: meshes.add(petra::mesh::generate_terrain_mesh()),
         material: materials.add(Color::rgb(0.1, 0.2, 0.1).into()),
         ..Default::default()
     });

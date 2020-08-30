@@ -2,7 +2,7 @@ use bevy_render::{
     mesh::{Mesh, VertexAttribute},
     pipeline::PrimitiveTopology,
 };
-use crate::regionem::generation;
+use crate::petra::generation;
 
 pub fn generate_terrain_mesh() -> Mesh{
     let mut positions: Vec<[f32;3]> = Vec::new();

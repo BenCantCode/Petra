@@ -1,5 +1,5 @@
-mod regionem;
+mod petra;
 
 fn main() {
-    regionem::setup::setup(); // Welcome to Regionem!
+    petra::setup::setup(); // Welcome to Petra!
 }
