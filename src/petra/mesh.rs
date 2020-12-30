@@ -1,6 +1,6 @@
 use crate::petra::generation;
-use bevy_render::{
-    mesh::{Mesh, VertexAttribute},
+use bevy::render::{
+    mesh::{Mesh},
     pipeline::PrimitiveTopology,
 };
 
@@ -39,13 +39,10 @@ pub fn generate_terrain_mesh() -> Mesh {
         }
     }
 
-    Mesh {
-        primitive_topology: PrimitiveTopology::TriangleList,
-        attributes: vec![
-            VertexAttribute::position(positions),
-            VertexAttribute::normal(normals),
-            VertexAttribute::uv(uvs),
-        ],
-        indices: Some(indices),
-    }
+    let mut terrain_mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    terrain_mesh.set_attribute("Vertex_Position", positions);
+    terrain_mesh.set_attribute("Vertex_Normal", normals);
+    terrain_mesh.set_attribute("Vertex_Uv", uvs);
+    terrain_mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
+    terrain_mesh
 }

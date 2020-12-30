@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+/*use bevy::prelude::*;
 
 pub struct CameraPlugin;
 
@@ -47,3 +47,4 @@ fn update_camera(mouse_position: Res<MouseLoc>, mut query: Query<&mut Camera3dCo
             Rotation::from_rotation_xyz(mouse_position.0.x(), mouse_position.0.y(), 0f32)
     }
 }
+*/
