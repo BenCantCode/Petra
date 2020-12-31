@@ -3,3 +3,4 @@ pub mod generation;
 pub mod mesh;
 pub mod setup;
 pub mod ui;
+pub mod erode;

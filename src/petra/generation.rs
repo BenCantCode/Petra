@@ -1,5 +1,10 @@
-use noise::{Fbm, NoiseFn};
+use noise::{Fbm, NoiseFn, Perlin};
+use crate::petra::erode;
 
+pub const TERRAIN_SIZE: usize = 128;
+const TERRAIN_WORLDSCALE: f32 = 256f32;
+const TERRAIN_HEIGHT: f32 = 128f32;
+const TERRAIN_NOISESCALE: f32 = 0.001;
 pub struct Terrain {
     pub data: Vec<Vec<f32>>,
     pub size: usize,
@@ -9,10 +14,6 @@ pub struct Terrain {
 }
 
 pub fn generate_terrain_data() -> Terrain {
-    const TERRAIN_SIZE: usize = 1024;
-    const TERRAIN_WORLDSCALE: f32 = 256f32;
-    const TERRAIN_HEIGHT: f32 = 50f32;
-    const TERRAIN_NOISESCALE: f32 = 0.005;
     let fbm = Fbm::new();
     let mut data: Vec<Vec<f32>> = Vec::with_capacity(TERRAIN_SIZE);
 
@@ -32,11 +33,13 @@ pub fn generate_terrain_data() -> Terrain {
         }
     }
 
-    Terrain {
+    let mut terrain = Terrain {
         data: data,
         size: TERRAIN_SIZE,
         worldscale: TERRAIN_WORLDSCALE,
         height: TERRAIN_HEIGHT,
         noisescale: TERRAIN_NOISESCALE,
-    }
+    };
+    terrain = erode::erode(terrain);
+    terrain
 }
