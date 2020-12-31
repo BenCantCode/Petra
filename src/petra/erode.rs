@@ -243,19 +243,20 @@ const MAX_ITERATIONS: u16 = 128;
 const ITERATION_SCALE: f32 = 0.05;
 */
 
-const NUM_DROPLETS: u32 = 10000;
-const SLOPE_THRESHOLD: f32 = 0.01;
-const DEPOSIT_RATE: f32 = 0.12;
-const EROSION_RATE: f32 = 0.2;
-const MAX_ITERATIONS: u16 = 256;
-const ITERATION_SCALE: f32 = 0.2;
+const NUM_DROPLETS: u32 = 50000;
+const SLOPE_THRESHOLD: f32 = 0.05;
+const DEPOSIT_RATE: f32 = 0.08;
+const EROSION_RATE: f32 = 0.12;
+const MAX_ITERATIONS: u16 = 32;
+const EXP_BASE: f32 = 1.5;
+const EROSION_MULTIPLIER: f32 = 40.0;
 
 pub fn erode(terrain: Terrain) -> Terrain {
     //Save original heightmap
     let mut original_heightmap_img = ImageBuffer::new(generation::TERRAIN_SIZE as u32, generation::TERRAIN_SIZE as u32);
     for x in 0..(generation::TERRAIN_SIZE as u32) {
         for y in 0..(generation::TERRAIN_SIZE as u32) {
-            original_heightmap_img.put_pixel(x, y, Luma([terrain.data[y as usize][x as usize] as u8]))
+            original_heightmap_img.put_pixel(x, y, Luma([(terrain.data[y as usize][x as usize] + 128.0) as u8]))
         }
     }
     original_heightmap_img.save("heightmap.bmp").unwrap();
@@ -276,11 +277,15 @@ pub fn erode(terrain: Terrain) -> Terrain {
                 if slope_vector.1 < SLOPE_THRESHOLD {
                     break;
                 }
-                let deposit = sediment * DEPOSIT_RATE * 0.5;
+                if drop == 8000 {
+                    println!("{}", slope_vector.1);
+                }
+                /*let deposit = sediment * DEPOSIT_RATE * (slope_vector.1/256.0);
                 let erosion =
-                    EROSION_RATE * (1.0 - 0.5) * 1f32.min((step as f32) * ITERATION_SCALE);
+                    EROSION_RATE * (1.0 - 0.5) * EXP_BASE.powi((step as i32) * -1);
                 modify_data(x, y, deposit - erosion, &mut data);
-                sediment += erosion - deposit;
+                sediment += erosion - deposit;*/
+                modify_data(x, y, (EXP_BASE).powi((step as i32) * -1) * -EROSION_MULTIPLIER * (slope_vector.1/256.0), &mut data);
                 let xy = offset_vector((x, y), slope_vector);
                 x = xy.0;
                 y = xy.1;
@@ -292,7 +297,7 @@ pub fn erode(terrain: Terrain) -> Terrain {
     let mut new_heightmap_img = ImageBuffer::new(generation::TERRAIN_SIZE as u32, generation::TERRAIN_SIZE as u32);
     for x in 0..(generation::TERRAIN_SIZE as u32) {
         for y in 0..(generation::TERRAIN_SIZE as u32) {
-            new_heightmap_img.put_pixel(x, y, Luma([data[y as usize][x as usize] as u8]))
+            new_heightmap_img.put_pixel(x, y, Luma([(data[y as usize][x as usize] + 128.0)as u8]))
         }
     }
     new_heightmap_img.save("new_heightmap.bmp").unwrap();
