@@ -505,6 +505,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_mod_picking"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b2944bd978c80620a75d006294df8e9e769a459462d86c11b11c90157d48798e"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_pbr"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2783,6 +2792,7 @@ version = "0.1.0"
 dependencies = [
  "bevy",
  "bevy_fly_camera",
+ "bevy_mod_picking",
  "image 0.23.12",
  "noise",
  "rand 0.8.0",

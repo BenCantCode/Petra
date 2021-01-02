@@ -1,4 +1,4 @@
-use crate::petra::generation;
+use crate::petra::*;
 use bevy::render::{
     mesh::{Mesh},
     pipeline::PrimitiveTopology,
@@ -6,7 +6,7 @@ use bevy::render::{
 
 pub fn generate_terrain_mesh() -> Mesh {
 
-    let terrain: generation::Terrain = generation::generate_terrain_data();
+    let terrain: terrain::Terrain = generation::generate_terrain_data();
 
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(terrain.size*terrain.size);
     let mut normals: Vec<[f32; 3]> = Vec::with_capacity(terrain.size*terrain.size);
