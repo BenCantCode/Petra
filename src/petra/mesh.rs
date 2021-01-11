@@ -18,7 +18,7 @@ pub fn generate_terrain_mesh() -> Mesh {
         for z in 0..terrain.size {
             positions.push([
                 ((x as f32) / (terrain.size as f32)) * terrain.worldscale,
-                terrain.data[x as usize][z as usize],
+                terrain.data[(x as usize, z as usize)],
                 ((z as f32) / (terrain.size as f32)) * terrain.worldscale,
             ]);
             normals.push([0f32, 1f32, 0f32]);

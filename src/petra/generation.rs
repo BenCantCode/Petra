@@ -1,29 +1,20 @@
 use noise::{Fbm, NoiseFn, Perlin};
 use crate::petra::erode;
 use crate::petra::terrain::Terrain;
+use crate::petra::terrain::TerrainData;
 
-pub const TERRAIN_SIZE: usize = 256;
+pub const TERRAIN_SIZE: usize = 128;
 const TERRAIN_WORLDSCALE: f32 = 256f32;
-const TERRAIN_HEIGHT: f32 = 80f32;
+pub const TERRAIN_HEIGHT: f32 = 50f32;
 const TERRAIN_NOISESCALE: f32 = 0.005;
 
 pub fn generate_terrain_data() -> Terrain {
     let fbm = Fbm::new();
-    let mut data: Vec<Vec<f32>> = Vec::with_capacity(TERRAIN_SIZE);
+    let mut data = TerrainData::zeros(TERRAIN_SIZE);
 
-    for x in 0..TERRAIN_SIZE {
-        data.push(Vec::with_capacity(TERRAIN_SIZE));
-        for z in 0..TERRAIN_SIZE {
-            data[x as usize].push(
-                ((fbm.get([
-                    (((x as f32) / TERRAIN_SIZE as f32) * TERRAIN_WORLDSCALE * TERRAIN_NOISESCALE)
-                        as f64,
-                    (((z as f32) / TERRAIN_SIZE as f32) * TERRAIN_WORLDSCALE * TERRAIN_NOISESCALE)
-                        as f64,
-                    0f64,
-                ]) as f64)
-                    * TERRAIN_HEIGHT as f64) as f32,
-            );
+    for z in 0..TERRAIN_SIZE {
+        for x in 0..TERRAIN_SIZE {
+            data[(x, z)] = (fbm.get([(x as f64)*0.01, (z as f64)*0.01]) as f32) * TERRAIN_HEIGHT;
         }
     }
 
@@ -34,6 +25,6 @@ pub fn generate_terrain_data() -> Terrain {
         height: TERRAIN_HEIGHT,
         noisescale: TERRAIN_NOISESCALE,
     };
-    terrain = erode::erode(terrain);
+    erode::erode(&mut terrain);
     terrain
 }
