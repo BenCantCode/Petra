@@ -158,9 +158,9 @@ impl TerrainData {
         }
     }
 
-    fn get_subpixel_weights(&self, x: f32, y: f32) -> (f32, f32, f32, f32) {
-        let x_adjusted = x % 1.0;
-        let y_adjusted = y % 1.0;
+    fn get_subpixel_weights(&self, xy: Vec2) -> (f32, f32, f32, f32) {
+        let x_adjusted = xy.x % 1.0;
+        let y_adjusted = xy.y % 1.0;
         let p1_weight = lerp(lerp(1.0, 0.0, x_adjusted), 0.0, y_adjusted);
         let p2_weight = lerp(lerp(0.0, 1.0, x_adjusted), 0.0, y_adjusted);
         let p3_weight = lerp(0.0, lerp(1.0, 0.0, x_adjusted), y_adjusted);
@@ -168,12 +168,12 @@ impl TerrainData {
         (p1_weight, p2_weight, p3_weight, p4_weight)
     }
 
-    pub fn modify(&mut self, x: f32, y: f32, change: f32) {
-        let (p1, p2, p3, p4) = &self.get_subpixel_weights(x, y);
-        self[(x.floor() as usize, y.floor() as usize)] += p1 * change;
-        self[(x.ceil() as usize, y.floor() as usize)] += p2 * change;
-        self[(x.floor() as usize, y.ceil() as usize)] += p3 * change;
-        self[(x.ceil() as usize, y.ceil() as usize)] += p4 * change;
+    pub fn modify(&mut self, xy: Vec2, change: f32) {
+        let (p1, p2, p3, p4) = &self.get_subpixel_weights(xy);
+        self[(xy.x.floor() as usize, xy.y.floor() as usize)] += p1 * change;
+        self[(xy.x.ceil() as usize, xy.y.floor() as usize)] += p2 * change;
+        self[(xy.x.floor() as usize, xy.y.ceil() as usize)] += p3 * change;
+        self[(xy.x.ceil() as usize, xy.y.ceil() as usize)] += p4 * change;
     }
     //Takes point and value map, returns downhill vector
     pub fn get_slope_vector(&self, pos: Vec2) -> Option<Vec2> {

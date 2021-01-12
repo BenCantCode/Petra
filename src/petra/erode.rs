@@ -1,15 +1,15 @@
 use crate::petra::generation;
 use crate::petra::terrain::Terrain;
+use bevy::math::vec2;
 use image::{ImageBuffer, Luma, Rgb};
 use rand::random;
 use std::f32;
 use std::usize;
-use bevy::math::vec2;
 
 use super::terrain;
 
 const MAX_ITERATIONS: u32 = 256;
-const NUM_DROPLETS: u32 = 20000;
+const NUM_DROPLETS: u32 = 100000;
 const MAX_CARRIED_SEDIMENT: f32 = 1.0;
 const EROSION_RATE: f32 = 0.12;
 const DEPOSITION_RATE: f32 = 0.2;
@@ -33,12 +33,13 @@ pub fn erode(terrain: &mut Terrain) {
     original_heightmap_img.save("heightmap.bmp").unwrap();
 
     for drop in 0..NUM_DROPLETS {
-        let x = random::<f32>() * generation::TERRAIN_SIZE as f32;
-        let y = random::<f32>() * generation::TERRAIN_SIZE as f32;
-        let mut xy = vec2(x, y);
+        let mut xy = vec2(
+            random::<f32>() * generation::TERRAIN_SIZE as f32,
+            random::<f32>() * generation::TERRAIN_SIZE as f32,
+        );
         let mut sediment: f32 = 0.0;
         for step in 0..MAX_ITERATIONS {
-            let slope_vector_option = terrain.data.get_slope_vector(vec2(x,y));
+            let slope_vector_option = terrain.data.get_slope_vector(xy);
             if slope_vector_option.is_some() {
                 let slope_vector = slope_vector_option.unwrap();
                 let new_xy = slope_vector + xy;
@@ -49,20 +50,19 @@ pub fn erode(terrain: &mut Terrain) {
                 {
                     break;
                 }
-                let height_difference = terrain.data.sample(new_xy)
-                    .unwrap()
-                    - terrain.data.sample(vec2(x, y)).unwrap();
+                let height_difference =
+                    terrain.data.sample(new_xy).unwrap() - terrain.data.sample(xy).unwrap();
                 if height_difference > 0.0 {
                     // Deposit the carried sediment.
-                    terrain.data.modify(x, y, sediment.min(DEPOSITION_RATE));
+                    terrain.data.modify(xy, sediment.min(DEPOSITION_RATE));
                     sediment -= sediment.min(DEPOSITION_RATE);
-                    if(sediment <= DRY_TRESHOLD){
+                    if (sediment <= DRY_TRESHOLD) {
                         break;
                     }
                 } else {
-                    xy=new_xy;
+                    xy = new_xy;
                     if sediment < MAX_CARRIED_SEDIMENT {
-                        terrain.data.modify(x, y, -EROSION_RATE);
+                        terrain.data.modify(xy, -EROSION_RATE);
                         sediment += EROSION_RATE;
                     }
                 }
@@ -77,7 +77,11 @@ pub fn erode(terrain: &mut Terrain) {
     );
     for x in 0..(generation::TERRAIN_SIZE as u32) {
         for y in 0..(generation::TERRAIN_SIZE as u32) {
-            new_heightmap_img.put_pixel(x, y, Luma([(terrain.data[(x as usize, y as usize)] + 128.0) as u8]))
+            new_heightmap_img.put_pixel(
+                x,
+                y,
+                Luma([(terrain.data[(x as usize, y as usize)] + 128.0) as u8]),
+            )
         }
     }
     new_heightmap_img.save("new_heightmap.bmp").unwrap();
