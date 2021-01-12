@@ -1,6 +1,8 @@
-use bevy::math::Vec2;
+use bevy::math::{Vec2, vec2};
 use std::ops::Index;
 use std::ops::IndexMut;
+use std::f32;
+use rand::random;
 
 pub struct TerrainData {
     pub data: Vec<f32>,
@@ -166,12 +168,26 @@ impl TerrainData {
         (p1_weight, p2_weight, p3_weight, p4_weight)
     }
 
-    pub fn offset(&mut self, x: f32, y: f32, change: f32) {
+    pub fn modify(&mut self, x: f32, y: f32, change: f32) {
         let (p1, p2, p3, p4) = &self.get_subpixel_weights(x, y);
         self[(x.floor() as usize, y.floor() as usize)] += p1 * change;
         self[(x.ceil() as usize, y.floor() as usize)] += p2 * change;
         self[(x.floor() as usize, y.ceil() as usize)] += p3 * change;
         self[(x.ceil() as usize, y.ceil() as usize)] += p4 * change;
+    }
+    //Takes point and value map, returns downhill vector
+    pub fn get_slope_vector(&self, pos: Vec2) -> Option<Vec2> {
+        // To get the angle, we "pull" the point towards each side based on the values of each side subpixel.
+        let base_value: f32 = self.sample(pos)?;
+        let left_value: f32 = self.sample(pos + vec2(-1., 0.0))?;
+        let right_value: f32 = self.sample(pos + vec2(1., 0.0))?;
+        let up_value: f32 = self.sample(pos + vec2(0.0, -1.0))?;
+        let down_value: f32 = self.sample(pos + vec2(0.0, 1.0))?;
+
+        let x_weighted: f32 = left_value * 1f32 + right_value * -1f32; //Weights are inverted because it goes downhill
+        let y_weighted: f32 = up_value * 1f32 + down_value * -1f32;
+
+        return Some(vec2(x_weighted, y_weighted));
     }
 }
 
