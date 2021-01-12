@@ -6,3 +6,4 @@ pub mod ui;
 pub mod erode;
 pub mod modify;
 pub mod terrain;
+pub mod shader;

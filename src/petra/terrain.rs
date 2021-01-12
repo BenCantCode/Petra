@@ -37,7 +37,31 @@ impl TerrainData {
         }
     }
 
-    pub fn get(&self, pos: Vec2) -> Option<f32> {
+    pub fn get(&self, x: usize, y: usize) -> Option<f32> {
+        if x >= 0 && x < self.size && y >= 0 && y < self.size {
+            Some(self[(x, y)])
+        }else{
+            None
+        }
+    }
+
+    pub fn get_safe(&self, x: usize, y: usize, x_offset: i32, y_offset: i32) -> Option<f32> {
+        let new_x = if x_offset.is_positive() {
+            x.checked_add(x_offset as usize)?
+        }else{
+            x.checked_sub(x_offset.abs() as usize)?
+        };
+
+        let new_y = if y_offset.is_positive() {
+            y.checked_add(y_offset as usize)?
+        }else{
+            y.checked_sub(y_offset.abs() as usize)?
+        };
+
+        self.get(new_x, new_y)
+    }
+
+    pub fn sample(&self, pos: Vec2) -> Option<f32> {
         // P1   P2
         //  (x,y)
         // P3   P4

@@ -3,6 +3,8 @@ use bevy::render::{
     mesh::{Mesh},
     pipeline::PrimitiveTopology,
 };
+use bevy::math::{Vec3, vec3};
+use rand;
 
 pub fn generate_terrain_mesh() -> Mesh {
 
@@ -21,7 +23,23 @@ pub fn generate_terrain_mesh() -> Mesh {
                 terrain.data[(x as usize, z as usize)],
                 ((z as f32) / (terrain.size as f32)) * terrain.worldscale,
             ]);
-            normals.push([0f32, 1f32, 0f32]);
+
+            // Calculate normals
+            let up = terrain.data.get_safe(x, z, 0, 1).unwrap_or(0.0);
+            
+            let upright = terrain.data.get_safe(x, z, 1, -1).unwrap_or(0.0);
+            let right = terrain.data.get_safe(x, z, 1, -1).unwrap_or(0.0);
+            let down = terrain.data.get_safe(x, z, 0, 1).unwrap_or(0.0);
+            let downleft = terrain.data.get_safe(x, z, -1, 1).unwrap_or(0.0);
+            let left = terrain.data.get_safe(x, z, -1, 0).unwrap_or(0.0);
+            let normal = vec3(
+                2.0*(left-right) - upright + downleft + up - down,
+                2.0*(down-up) + upright + downleft - up - left,
+                6.0
+            );
+            let normal_normalized = normal.normalize();
+            
+            normals.push(normal_normalized.into());
             uvs.push([x as f32, z as f32]);
 
             if x != terrain.size - 1 && z != terrain.size - 1 {

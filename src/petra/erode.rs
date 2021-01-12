@@ -11,11 +11,11 @@ use super::terrain;
 //Takes point and value map, returns downhill vector
 fn get_slope_vector(x: f32, y: f32, terrain: &Terrain) -> Option<(f32, f32)> {
     // To get the angle, we "pull" the point towards each side based on the values of each side subpixel.
-    let base_value: f32 = terrain.data.get(vec2(x, y))?;
-    let left_value: f32 = terrain.data.get(vec2(x - 1., y))?;
-    let right_value: f32 = terrain.data.get(vec2(x + 1., y))?;
-    let up_value: f32 = terrain.data.get(vec2(x, y - 1.))?;
-    let down_value: f32 = terrain.data.get(vec2(x, y + 1.))?;
+    let base_value: f32 = terrain.data.sample(vec2(x, y))?;
+    let left_value: f32 = terrain.data.sample(vec2(x - 1., y))?;
+    let right_value: f32 = terrain.data.sample(vec2(x + 1., y))?;
+    let up_value: f32 = terrain.data.sample(vec2(x, y - 1.))?;
+    let down_value: f32 = terrain.data.sample(vec2(x, y + 1.))?;
 
     let x_weighted: f32 = left_value * 1f32 + right_value * -1f32; //Weights are inverted because it goes downhill
     let y_weighted: f32 = up_value * 1f32 + down_value * -1f32;
@@ -53,11 +53,11 @@ fn offset_vector(xy: (f32, f32), vector: (f32, f32)) -> (f32, f32) {
 }
 
 const MAX_ITERATIONS: u32 = 256;
-const NUM_DROPLETS: u32 = 200000;
+const NUM_DROPLETS: u32 = 20000;
 const MAX_CARRIED_SEDIMENT: f32 = 1.0;
-const EROSION_RATE: f32 = 0.03;
-const DEPOSITION_RATE: f32 = 0.05;
-const DRY_TRESHOLD: f32 = 0.02;
+const EROSION_RATE: f32 = 0.12;
+const DEPOSITION_RATE: f32 = 0.2;
+const DRY_TRESHOLD: f32 = 0.08;
 
 pub fn erode(terrain: &mut Terrain) {
     //Save original heightmap
@@ -92,9 +92,9 @@ pub fn erode(terrain: &mut Terrain) {
                 {
                     break;
                 }
-                let height_difference = terrain.data.get(vec2(new_xy.0, new_xy.1))
+                let height_difference = terrain.data.sample(vec2(new_xy.0, new_xy.1))
                     .unwrap()
-                    - terrain.data.get(vec2(x, y)).unwrap();
+                    - terrain.data.sample(vec2(x, y)).unwrap();
                 if height_difference > 0.0 {
                     // Deposit the carried sediment.
                     terrain.data.offset(x, y, sediment.min(DEPOSITION_RATE));
