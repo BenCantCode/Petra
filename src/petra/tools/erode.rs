@@ -1,12 +1,11 @@
-use crate::petra::terrain::Terrain;
+use crate::petra::terrain::{Terrain, TerrainDataChunk};
 use bevy::math::{vec2, Vec2};
 use image::{ImageBuffer, Luma, Rgb};
 use rand::random;
 use std::f32;
 use std::usize;
 
-const MAX_ITERATIONS: u32 = 256;
-const NUM_DROPLETS: u32 = 100000;
+const MAX_ITERATIONS: u32 = 1028;
 const MAX_CARRIED_SEDIMENT: f32 = 1.0;
 const EROSION_RATE: f32 = 0.12;
 const DEPOSITION_RATE: f32 = 0.2;
@@ -26,33 +25,27 @@ impl Droplet {
             alive: true,
         }
     }
-    fn step(&mut self, terrain: &mut Terrain){
+    fn step(&mut self, terrain: &mut Terrain) {
         let slope_vector_option = terrain.data.get_slope_vector(self.xy);
         if slope_vector_option.is_some() {
             let slope_vector = slope_vector_option.unwrap();
             let new_xy = slope_vector + self.xy;
-            if new_xy.x < 0.0
-                || new_xy.x.ceil() as usize > terrain.size - 1
-                || new_xy.y < 0.0
-                || new_xy.y.ceil() as usize > terrain.size - 1
-            {
-                self.alive = false;
+            let height_difference =
+                terrain.data.sample(new_xy).unwrap() - terrain.data.sample(self.xy).unwrap();
+            if height_difference > 0.0 {
+                // Deposit the carried sediment.
+                terrain
+                    .data
+                    .modify(self.xy, self.sediment.min(DEPOSITION_RATE));
+                self.sediment -= self.sediment.min(DEPOSITION_RATE);
+                if self.sediment <= DRY_TRESHOLD {
+                    self.alive = false;
+                }
             } else {
-                let height_difference =
-                    terrain.data.sample(new_xy).unwrap() - terrain.data.sample(self.xy).unwrap();
-                if height_difference > 0.0 {
-                    // Deposit the carried sediment.
-                    terrain.data.modify(self.xy, self.sediment.min(DEPOSITION_RATE));
-                    self.sediment -= self.sediment.min(DEPOSITION_RATE);
-                    if self.sediment <= DRY_TRESHOLD {
-                        self.alive = false;
-                    }
-                } else {
-                    self.xy = new_xy;
-                    if self.sediment < MAX_CARRIED_SEDIMENT {
-                        terrain.data.modify(self.xy, -EROSION_RATE);
-                        self.sediment += EROSION_RATE;
-                    }
+                self.xy = new_xy;
+                if self.sediment < MAX_CARRIED_SEDIMENT {
+                    terrain.data.modify(self.xy, -EROSION_RATE);
+                    self.sediment += EROSION_RATE;
                 }
             }
         } else {

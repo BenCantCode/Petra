@@ -1,54 +1,29 @@
-use bevy::math::{Vec2, vec2};
+use bevy::math::{vec2, Vec2};
+use std::collections::HashMap;
+use std::f32;
 use std::ops::Index;
 use std::ops::IndexMut;
-use std::f32;
-use noise::{Fbm, NoiseFn};
+use std::borrow::Cow;
 
-pub struct TerrainData {
-    pub data: Vec<f32>,
-    pub size: usize,
-    pub modified: bool,
+const CHUNK_SIZE: usize = 128;
+
+// This is mostly meant as a thin layer on top of TerrainData. Most relevant methods will go under TerrainData.
+#[derive(Debug, Clone, Copy)]
+pub struct TerrainDataChunk {
+    pub data: [f32; (CHUNK_SIZE * CHUNK_SIZE) as usize],
+    pub coords: (i32, i32),
+    pub modified: bool
 }
 
-fn lerp(s: f32, e: f32, i: f32) -> f32 {
-    s + (e - s) * i
-}
-
-impl Index<(usize, usize)> for TerrainData {
-    type Output = f32;
-
-    fn index(&self, coordinates: (usize, usize)) -> &Self::Output {
-        &self.data[self.size * coordinates.1 + coordinates.0]
-    }
-}
-
-impl IndexMut<(usize, usize)> for TerrainData {
-    fn index_mut(&mut self, coordinates: (usize, usize)) -> &mut f32 {
-        &mut self.data[self.size * coordinates.1 + coordinates.0]
-    }
-}
-
-impl TerrainData {
-    pub fn new(data: Vec<f32>, size: usize) -> Self {
-        TerrainData { data, size, modified: true }
-    }
-
-    pub fn zeros(size: usize) -> Self {
-        TerrainData {
-            data: vec![0.0; size*size],
-            size,
-            modified: true,
+impl TerrainDataChunk {
+    pub const size: usize = CHUNK_SIZE;
+    pub fn new(coords: (i32, i32)) -> Self {
+        Self {
+            data: [0.0; Self::size*Self::size],
+            coords,
+            modified: false
         }
     }
-
-    pub fn get(&self, x: usize, y: usize) -> Option<f32> {
-        if x >= 0 && x < self.size && y >= 0 && y < self.size {
-            Some(self[(x, y)])
-        }else{
-            None
-        }
-    }
-
     pub fn get_safe(&self, x: usize, y: usize, x_offset: i32, y_offset: i32) -> Option<f32> {
         let new_x = if x_offset.is_positive() {
             x.checked_add(x_offset as usize)?
@@ -62,7 +37,71 @@ impl TerrainData {
             y.checked_sub(y_offset.abs() as usize)?
         };
 
-        self.get(new_x, new_y)
+        if new_x >= Self::size || new_y >= Self::size {
+            return None;
+        }
+
+        Some(self.data[new_y*TerrainDataChunk::size+new_x])
+    }
+}
+pub struct TerrainData {
+    pub chunks: HashMap<(i32, i32), TerrainDataChunk>,
+}
+
+fn lerp(s: f32, e: f32, i: f32) -> f32 {
+    s + (e - s) * i
+}
+
+impl Index<(i32, i32)> for TerrainData {
+    type Output = f32;
+
+    fn index(&self, coordinates: (i32, i32)) -> &Self::Output {
+        let chunk_coordinates = Self::get_terrain_chunk_coordinates(coordinates);
+        let relative_x = coordinates.0.rem_euclid(TerrainDataChunk::size as i32);
+        let relative_y = coordinates.1.rem_euclid(TerrainDataChunk::size as i32);
+        if !self.chunks.contains_key(&chunk_coordinates) {
+            &0.0
+        } else {
+            &self.chunks.get(&chunk_coordinates).unwrap().data
+                [(relative_y as usize) * TerrainDataChunk::size + (relative_x as usize)]
+        }
+    }
+}
+
+impl IndexMut<(i32, i32)> for TerrainData {
+    fn index_mut(&mut self, coordinates: (i32, i32)) -> &mut f32 {
+        let chunk_coordinates = Self::get_terrain_chunk_coordinates(coordinates);
+        let relative_x = coordinates.0.rem_euclid(TerrainDataChunk::size as i32);
+        let relative_y = coordinates.1.rem_euclid(TerrainDataChunk::size as i32);
+        if !self.chunks.contains_key(&chunk_coordinates) {
+            self.chunks.insert(
+                chunk_coordinates,
+                TerrainDataChunk::new(chunk_coordinates)
+            );
+        }
+        &mut self.chunks.get_mut(&chunk_coordinates).unwrap().data
+            [(relative_y as usize) * TerrainDataChunk::size + (relative_x as usize)]
+    }
+}
+
+impl TerrainData {
+    pub fn new(data: HashMap<(i32, i32), TerrainDataChunk>) -> Self {
+        TerrainData {
+            chunks: data,
+        }
+    }
+
+    pub fn zeros() -> Self {
+        TerrainData {
+            chunks: HashMap::new(),
+        }
+    }
+
+    pub fn get_terrain_chunk_coordinates(coordinates: (i32, i32)) -> (i32, i32) {
+        (
+            (coordinates.0 as i32).div_euclid(TerrainDataChunk::size as i32),
+            (coordinates.1 as i32).div_euclid(TerrainDataChunk::size as i32),
+        )
     }
 
     pub fn sample(&self, pos: Vec2) -> Option<f32> {
@@ -71,98 +110,21 @@ impl TerrainData {
         // P3   P4
         // Bilinear interpolation, with linear interpolation/nearest neighbor for edge values.
         let Vec2 { x, y } = pos;
-        let len = self.size;
         let x_adjusted = x % 1.0;
         let y_adjusted = y % 1.0;
-        if x.floor() >= 0.0
-            && x.ceil() <= (len as f32) - 1.0
-            && y.floor() >= 0.0
-            && y.ceil() <= (len as f32) - 1.0
-        {
-            // Full bilinear
-            let p1 = self[(x.floor() as usize, y.floor() as usize)];
-            let p2 = self[(x.ceil() as usize, y.floor() as usize)];
-            let p3 = self[(x.floor() as usize, y.ceil() as usize)];
-            let p4 = self[(x.ceil() as usize, y.ceil() as usize)];
-            let top_x_interp = lerp(p1, p2, x_adjusted);
-            let bottom_x_interp = lerp(p3, p4, x_adjusted);
-            Some(lerp(top_x_interp, bottom_x_interp, y_adjusted))
-        } else if x.floor() < 0.0
-            && x.ceil() <= (len as f32) - 1.0
-            && x.ceil() >= 0.0
-            && y.floor() >= 0.0
-            && y.ceil() <= (len as f32) - 1.0
-        {
-            // left side cut off
-            let p2 = self[(x.ceil() as usize, y.floor() as usize)];
-            let p4 = self[(x.ceil() as usize, y.ceil() as usize)];
-            return Some(lerp(p2, p4, y_adjusted));
-        } else if x.floor() >= 0.0
-            && x.floor() <= (len as f32) - 1.0
-            && x.ceil() > (len as f32) - 1.0
-            && y.floor() >= 0.0
-            && y.ceil() <= (len as f32) - 1.0
-        {
-            // right side cut off
-            let p1 = self[(x.floor() as usize, y.floor() as usize)];
-            let p3 = self[(x.floor() as usize, y.ceil() as usize)];
-            Some(lerp(p1, p3, y_adjusted))
-        } else if x.floor() >= 0.0
-            && x.ceil() <= (len as f32) - 1.0
-            && y.floor() < 0.0
-            && y.ceil() >= 0.0
-            && y.ceil() <= (len as f32) - 1.0
-        {
-            // top cut off
-            let p3 = self[(x.floor() as usize, y.ceil() as usize)];
-            let p4 = self[(x.ceil() as usize, y.ceil() as usize)];
-            Some(lerp(p3, p4, x_adjusted))
-        } else if x.floor() >= 0.0
-            && x.ceil() <= (len as f32) - 1.0
-            && y.floor() >= 0.0
-            && y.floor() <= (len as f32) - 1.0
-            && y.ceil() > (len as f32) - 1.0
-        {
-            // bottom cut off
-            let p1 = self[(x.ceil() as usize, y.floor() as usize)];
-            let p2 = self[(x.ceil() as usize, y.floor() as usize)];
-            Some(lerp(p1, p2, x_adjusted))
-        } else if y.ceil() >= 0.0
-            && y.ceil() <= (len as f32) - 1.0
-            && x.floor() >= 0.0
-            && x.floor() <= (len as f32) - 1.0
-        {
-            // If p1 isn't cut off (top left corner)
-            Some(self[(x.floor() as usize, y.floor() as usize)])
-        } else if y.floor() >= 0.0
-            && y.floor() <= (len as f32) - 1.0
-            && x.ceil() >= 0.0
-            && x.ceil() <= (len as f32) - 1.0
-        {
-            // If p2 isn't cut off (top right corner)
-            Some(self[(x.ceil() as usize, y.floor() as usize)])
-        } else if y.ceil() >= 0.0
-            && y.ceil() <= (len as f32) - 1.0
-            && x.floor() >= 0.0
-            && x.floor() <= (len as f32) - 1.0
-        {
-            // If p3 isn't cut off (bottom left corner)
-            Some(self[(x.floor() as usize, y.ceil() as usize)])
-        } else if y.ceil() >= 0.0
-            && y.ceil() <= (len as f32) - 1.0
-            && x.ceil() >= 0.0
-            && x.ceil() <= (len as f32) - 1.0
-        {
-            // If p4 isn't cut off (top right corner)
-            Some(self[(x.ceil() as usize, y.ceil() as usize)])
-        } else {
-            None
-        }
+
+        let p1 = self[(x.floor() as i32, y.floor() as i32)];
+        let p2 = self[(x.ceil() as i32, y.floor() as i32)];
+        let p3 = self[(x.floor() as i32, y.ceil() as i32)];
+        let p4 = self[(x.ceil() as i32, y.ceil() as i32)];
+        let top_x_interp = lerp(p1, p2, x_adjusted);
+        let bottom_x_interp = lerp(p3, p4, x_adjusted);
+        Some(lerp(top_x_interp, bottom_x_interp, y_adjusted))
     }
 
     fn get_subpixel_weights(&self, xy: Vec2) -> (f32, f32, f32, f32) {
-        let x_adjusted = xy.x % 1.0;
-        let y_adjusted = xy.y % 1.0;
+        let x_adjusted = xy.x.rem_euclid(1.0);
+        let y_adjusted = xy.y.rem_euclid(1.0);
         let p1_weight = lerp(lerp(1.0, 0.0, x_adjusted), 0.0, y_adjusted);
         let p2_weight = lerp(lerp(0.0, 1.0, x_adjusted), 0.0, y_adjusted);
         let p3_weight = lerp(0.0, lerp(1.0, 0.0, x_adjusted), y_adjusted);
@@ -171,23 +133,17 @@ impl TerrainData {
     }
 
     pub fn modify(&mut self, xy: Vec2, change: f32) {
+        //println!("Bleh. ${:?}, ${:?}", xy, change);
         let (p1, p2, p3, p4) = &self.get_subpixel_weights(xy);
-        let (x, y) = (xy.x.floor() as usize, xy.y.floor() as usize);
-        if x<self.size && y<self.size {
-            self[(x,y)] += p1 * change;
+        let (x, y) = (xy.x, xy.y);
+        if let Some(i) = self.chunks.get_mut(&Self::get_terrain_chunk_coordinates((xy.x as i32, xy.y as i32))) {
+            i.modified = true;
         }
-        let (x, y) = (xy.x.ceil() as usize, xy.y.floor() as usize);
-        if x<self.size && y<self.size {
-            self[(x,y)] += p2 * change;
-        }
-        let (x, y) = (xy.x.floor() as usize, xy.y.ceil() as usize);
-        if x<self.size && y<self.size {
-            self[(x,y)] += p3 * change;
-        }
-        let (x, y) = (xy.x.ceil() as usize, xy.y.ceil() as usize);
-        if x<self.size && y<self.size {
-            self[(x,y)] += p4 * change;
-        }
+        //println!("I am going to add {} * {} to {} = {}", p1, change, self[(x.floor() as i32, y.floor() as i32)], p1 * change);
+        self[(x.floor() as i32, y.floor() as i32)] += p1 * change;
+        self[(x.ceil() as i32, y.floor() as i32)] += p2 * change;
+        self[(x.floor() as i32, y.ceil() as i32)] += p3 * change;
+        self[(x.ceil() as i32, y.ceil() as i32)] += p4 * change;
     }
     //Takes point and value map, returns downhill vector
     pub fn get_slope_vector(&self, pos: Vec2) -> Option<Vec2> {
@@ -206,28 +162,16 @@ impl TerrainData {
 
 pub struct Terrain {
     pub data: TerrainData,
-    pub size: usize,
     pub worldscale: f32,
     pub height: f32,
     pub noisescale: f32,
 }
 
-const TERRAIN_SIZE: usize = 512;
 impl Default for Terrain {
     fn default() -> Terrain {
-        let fbm = Fbm::new();
-        let mut data = TerrainData::zeros(TERRAIN_SIZE);
-    
-        for z in 0..TERRAIN_SIZE {
-            for x in 0..TERRAIN_SIZE {
-                data[(x, z)] = (fbm.get([(x as f64)*0.003, (z as f64)*0.003]) as f32) * 32.0;
-            }
-        }
-    
         Terrain {
-            data: data,
-            size: TERRAIN_SIZE,
-            worldscale: 512.0,
+            data: TerrainData::zeros(),
+            worldscale: 256.0,
             height: 64.0,
             noisescale: 0.01,
         }

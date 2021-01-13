@@ -15,36 +15,6 @@ use bevy::{
 use bevy_fly_camera::{FlyCamera, FlyCameraPlugin};
 use bevy_mod_picking::*;
 
-fn setup_terrain(
-    commands: &mut Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut pipelines: ResMut<Assets<PipelineDescriptor>>,
-    mut shaders: ResMut<Assets<Shader>>,
-    terrain: ResMut<petra::terrain::Terrain>
-) {
-    let pipeline_handle = pipelines.add(PipelineDescriptor::default_config(ShaderStages {
-        vertex: shaders.add(Shader::from_glsl(
-            ShaderStage::Vertex,
-            shader::VERTEX_SHADER,
-        )),
-        fragment: Some(shaders.add(Shader::from_glsl(
-            ShaderStage::Fragment,
-            shader::FRAGMENT_SHADER,
-        ))),
-    }));
-
-    let terrain_mesh = meshes.add(petra::mesh::generate_mesh(&terrain));
-
-    commands.spawn(MeshBundle {
-        mesh: terrain_mesh,
-        render_pipelines: RenderPipelines::from_pipelines(vec![RenderPipeline::new(
-            pipeline_handle.clone(),
-        )]),
-        ..Default::default()
-    })
-    .with(PickableMesh::default());
-}
-
 fn setup_scene(
     commands: &mut Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -83,10 +53,10 @@ pub fn setup() {
     App::build()
         .add_resource(Msaa { samples: 4 })
         .add_plugins(DefaultPlugins)
-        .add_startup_system(setup_terrain.system())
         .add_startup_system(setup_scene.system())
         .add_plugin(FlyCameraPlugin)
         .add_plugin(PickingPlugin)
+        .add_plugin(petra::mesh::TerrainMeshPlugin)
         .add_plugin(petra::modify::Modify)
         .add_system(rts_camera_system.system())
         //.add_plugin(InteractablePickingPlugin)
