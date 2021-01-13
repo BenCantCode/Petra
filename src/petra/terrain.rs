@@ -2,11 +2,12 @@ use bevy::math::{Vec2, vec2};
 use std::ops::Index;
 use std::ops::IndexMut;
 use std::f32;
-use rand::random;
+use noise::{Fbm, NoiseFn};
 
 pub struct TerrainData {
     pub data: Vec<f32>,
     pub size: usize,
+    pub modified: bool,
 }
 
 fn lerp(s: f32, e: f32, i: f32) -> f32 {
@@ -29,13 +30,14 @@ impl IndexMut<(usize, usize)> for TerrainData {
 
 impl TerrainData {
     pub fn new(data: Vec<f32>, size: usize) -> Self {
-        TerrainData { data, size }
+        TerrainData { data, size, modified: true }
     }
 
     pub fn zeros(size: usize) -> Self {
         TerrainData {
             data: vec![0.0; size*size],
             size,
+            modified: true,
         }
     }
 
@@ -170,15 +172,26 @@ impl TerrainData {
 
     pub fn modify(&mut self, xy: Vec2, change: f32) {
         let (p1, p2, p3, p4) = &self.get_subpixel_weights(xy);
-        self[(xy.x.floor() as usize, xy.y.floor() as usize)] += p1 * change;
-        self[(xy.x.ceil() as usize, xy.y.floor() as usize)] += p2 * change;
-        self[(xy.x.floor() as usize, xy.y.ceil() as usize)] += p3 * change;
-        self[(xy.x.ceil() as usize, xy.y.ceil() as usize)] += p4 * change;
+        let (x, y) = (xy.x.floor() as usize, xy.y.floor() as usize);
+        if x<self.size && y<self.size {
+            self[(x,y)] += p1 * change;
+        }
+        let (x, y) = (xy.x.ceil() as usize, xy.y.floor() as usize);
+        if x<self.size && y<self.size {
+            self[(x,y)] += p2 * change;
+        }
+        let (x, y) = (xy.x.floor() as usize, xy.y.ceil() as usize);
+        if x<self.size && y<self.size {
+            self[(x,y)] += p3 * change;
+        }
+        let (x, y) = (xy.x.ceil() as usize, xy.y.ceil() as usize);
+        if x<self.size && y<self.size {
+            self[(x,y)] += p4 * change;
+        }
     }
     //Takes point and value map, returns downhill vector
     pub fn get_slope_vector(&self, pos: Vec2) -> Option<Vec2> {
         // To get the angle, we "pull" the point towards each side based on the values of each side subpixel.
-        let base_value: f32 = self.sample(pos)?;
         let left_value: f32 = self.sample(pos + vec2(-1., 0.0))?;
         let right_value: f32 = self.sample(pos + vec2(1., 0.0))?;
         let up_value: f32 = self.sample(pos + vec2(0.0, -1.0))?;
@@ -197,4 +210,26 @@ pub struct Terrain {
     pub worldscale: f32,
     pub height: f32,
     pub noisescale: f32,
+}
+
+const TERRAIN_SIZE: usize = 512;
+impl Default for Terrain {
+    fn default() -> Terrain {
+        let fbm = Fbm::new();
+        let mut data = TerrainData::zeros(TERRAIN_SIZE);
+    
+        for z in 0..TERRAIN_SIZE {
+            for x in 0..TERRAIN_SIZE {
+                data[(x, z)] = (fbm.get([(x as f64)*0.003, (z as f64)*0.003]) as f32) * 32.0;
+            }
+        }
+    
+        Terrain {
+            data: data,
+            size: TERRAIN_SIZE,
+            worldscale: 512.0,
+            height: 64.0,
+            noisescale: 0.01,
+        }
+    }
 }

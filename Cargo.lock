@@ -506,9 +506,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_mod_picking"
-version = "0.3.1"
+version = "0.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b2944bd978c80620a75d006294df8e9e769a459462d86c11b11c90157d48798e"
+checksum = "8b6b4dc5b553feb5bc425f106378c8665798e240a3c039d0ccc1d86ef16ca10d"
 dependencies = [
  "bevy",
 ]
@@ -1937,6 +1937,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "goshawk"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1d26fb735d8a4206ee1b6a9743ee56434b6b84c479951e419d8a70b7b2085635"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "guillotiere"
 version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2793,6 +2802,7 @@ dependencies = [
  "bevy",
  "bevy_fly_camera",
  "bevy_mod_picking",
+ "goshawk",
  "image 0.23.12",
  "noise",
  "rand 0.8.0",

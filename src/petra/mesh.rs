@@ -6,10 +6,7 @@ use bevy::render::{
 use bevy::math::{Vec3, vec3};
 use rand;
 
-pub fn generate_terrain_mesh() -> Mesh {
-
-    let terrain: terrain::Terrain = generation::generate_terrain_data();
-
+pub fn generate_mesh(terrain: &terrain::Terrain) -> Mesh {
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(terrain.size*terrain.size);
     let mut normals: Vec<[f32; 3]> = Vec::with_capacity(terrain.size*terrain.size);
     let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(terrain.size*terrain.size);
@@ -57,10 +54,11 @@ pub fn generate_terrain_mesh() -> Mesh {
         }
     }
 
-    let mut terrain_mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    terrain_mesh.set_attribute("Vertex_Position", positions);
-    terrain_mesh.set_attribute("Vertex_Normal", normals);
-    terrain_mesh.set_attribute("Vertex_Uv", uvs);
-    terrain_mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
-    terrain_mesh
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.set_attribute("Vertex_Position", positions);
+    mesh.set_attribute("Vertex_Normal", normals);
+    mesh.set_attribute("Vertex_Uv", uvs);
+    mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
+
+    mesh
 }
