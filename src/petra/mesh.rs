@@ -1,6 +1,5 @@
 use crate::petra::shader::*;
 use crate::petra::terrain::*;
-use bevy::prelude::*;
 use bevy::render::{mesh::Mesh, pipeline::PrimitiveTopology};
 use bevy::{
     math::vec3,
@@ -9,6 +8,10 @@ use bevy::{
         pipeline::{PipelineDescriptor, RenderPipeline},
         shader::{ShaderStage, ShaderStages},
     },
+};
+use bevy::{
+    prelude::*,
+    render::{render_graph::RenderGraph, renderer::RenderContext},
 };
 use bevy_mod_picking::PickableMesh;
 
@@ -19,20 +22,23 @@ pub struct ChunkComponent((i32, i32));
 pub struct TerrainMeshPlugin;
 impl Plugin for TerrainMeshPlugin {
     fn build(&self, app: &mut AppBuilder) {
-        let pipeline_handle = {
-            let resources = app.resources();
-            let mut pipelines = resources.get_mut::<Assets<PipelineDescriptor>>().unwrap();
-            let mut shaders = resources.get_mut::<Assets<Shader>>().unwrap();
-            pipelines.add(PipelineDescriptor::default_config(ShaderStages {
-                vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, VERTEX_SHADER)),
-                fragment: Some(
-                    shaders.add(Shader::from_glsl(ShaderStage::Fragment, FRAGMENT_SHADER)),
-                ),
-            }))
-        };
-        app.add_resource(CustomPipeline(pipeline_handle));
+        app.add_startup_system(chunk_mesh_system_setup.system());
         app.add_system(chunk_mesh_system.system());
     }
+}
+
+fn chunk_mesh_system_setup(
+    commands: &mut Commands,
+    mut shaders: ResMut<Assets<Shader>>,
+    mut pipelines: ResMut<Assets<PipelineDescriptor>>,
+) {
+    let pipeline_handle = {
+        pipelines.add(PipelineDescriptor::default_config(ShaderStages {
+            vertex: shaders.add(Shader::from_glsl(ShaderStage::Vertex, VERTEX_SHADER)),
+            fragment: Some(shaders.add(Shader::from_glsl(ShaderStage::Fragment, FRAGMENT_SHADER))),
+        }))
+    };
+    commands.insert_resource(CustomPipeline(pipeline_handle));
 }
 
 const RENDER_DISTANCE: i32 = 2;
@@ -61,7 +67,6 @@ fn chunk_mesh_system(
                 if let Some(chunk) = terrain.data.chunks.get(&(x, z)) {
                     if chunk.modified {
                         meshes.set(e.2, generate_mesh(&terrain, (x, z)));
-                        println!("Modified!");
                         terrain.data.chunks.get_mut(&(x, z)).unwrap().modified = false;
                     }
                 }
@@ -164,27 +169,27 @@ pub fn generate_mesh(terrain: &Terrain, chunk_coordinates: (i32, i32)) -> Mesh {
             // Calculate normals
             let up = terrain.data[(
                 x as i32 + chunk_real_coordinates.0,
-                (z + 1) as i32 + chunk_real_coordinates.1,
+                z as i32 - 1 + chunk_real_coordinates.1,
             )];
 
             let upright = terrain.data[(
-                (x + 1) as i32 + chunk_real_coordinates.0,
-                (z - 1) as i32 + chunk_real_coordinates.1,
+                x as i32 + 1 + chunk_real_coordinates.0,
+                z as i32 - 1 + chunk_real_coordinates.1,
             )];
             let right = terrain.data[(
-                (x + 1) as i32 + chunk_real_coordinates.0,
+                x as i32 + 1 + chunk_real_coordinates.0,
                 z as i32 + chunk_real_coordinates.1,
             )];
             let down = terrain.data[(
                 x as i32 + chunk_real_coordinates.0,
-                (z + 1) as i32 + chunk_real_coordinates.1,
+                z as i32 + 1 + chunk_real_coordinates.1,
             )];
             let downleft = terrain.data[(
-                (x + 1) as i32 + chunk_real_coordinates.0,
-                (z - 1) as i32 + chunk_real_coordinates.1,
+                x as i32 - 1 + chunk_real_coordinates.0,
+                z as i32 + 1 + chunk_real_coordinates.1,
             )];
             let left = terrain.data[(
-                (x - 1) as i32 + chunk_real_coordinates.0,
+                x as i32 - 1 + chunk_real_coordinates.0,
                 z as i32 + chunk_real_coordinates.1,
             )];
 

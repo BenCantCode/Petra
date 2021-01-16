@@ -110,8 +110,8 @@ impl TerrainData {
         // P3   P4
         // Bilinear interpolation, with linear interpolation/nearest neighbor for edge values.
         let Vec2 { x, y } = pos;
-        let x_adjusted = x % 1.0;
-        let y_adjusted = y % 1.0;
+        let x_adjusted = x.rem_euclid(1.0);
+        let y_adjusted = x.rem_euclid(1.0);
 
         let p1 = self[(x.floor() as i32, y.floor() as i32)];
         let p2 = self[(x.ceil() as i32, y.floor() as i32)];
@@ -153,7 +153,7 @@ impl TerrainData {
         let up_value: f32 = self.sample(pos + vec2(0.0, -1.0))?;
         let down_value: f32 = self.sample(pos + vec2(0.0, 1.0))?;
 
-        let x_weighted: f32 = left_value * 1f32 + right_value * -1f32; //Weights are inverted because it goes downhill
+        let x_weighted: f32 = left_value * 1f32 + right_value * -1f32;
         let y_weighted: f32 = up_value * 1f32 + down_value * -1f32;
 
         return Some(vec2(x_weighted, y_weighted));
