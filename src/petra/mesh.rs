@@ -72,7 +72,11 @@ fn chunk_mesh_system_setup(
 
 }
 
-const RENDER_DISTANCE: i32 = 1;
+const RENDER_DISTANCE: i32 = 3;
+
+fn find_ray_ground_intersection(pos: Vec3, dir: Vec3) -> Vec2 {
+    vec2(dir.x * (pos.y/dir.y) + pos.x, dir.z * (pos.y/dir.y) + pos.z)
+}
 
 fn chunk_mesh_system(
     commands: &mut Commands,
@@ -84,9 +88,11 @@ fn chunk_mesh_system(
     terrain_material: Res<TerrainMaterial>
 ) {
     let camera_translation = camera_query.iter().next().unwrap().1.translation;
+    let camera_direction = camera_query.iter().next().unwrap().1.rotation.mul_vec3(vec3(0.0, 1.0, 0.0));
+    let looking_at = find_ray_ground_intersection(camera_translation, camera_direction);
     let camera_chunk_coordinates = TerrainData::get_terrain_chunk_coordinates((
-        camera_translation.x as i32,
-        camera_translation.z as i32,
+        looking_at.x as i32,
+        looking_at.y as i32,
     ));
 
     for x in (camera_chunk_coordinates.0 - RENDER_DISTANCE)
