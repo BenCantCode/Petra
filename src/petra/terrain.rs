@@ -3,9 +3,7 @@ use std::collections::HashMap;
 use std::f32;
 use std::ops::Index;
 use std::ops::IndexMut;
-use std::borrow::Cow;
-
-const CHUNK_SIZE: usize = 128;
+const CHUNK_SIZE: usize = 64;
 
 // This is mostly meant as a thin layer on top of TerrainData. Most relevant methods will go under TerrainData.
 #[derive(Debug, Clone, Copy)]
@@ -109,7 +107,8 @@ impl TerrainData {
         //  (x,y)
         // P3   P4
         // Bilinear interpolation, with linear interpolation/nearest neighbor for edge values.
-        let Vec2 { x, y } = pos;
+        let x = pos.x;
+        let y = pos.y;
         let x_adjusted = x.rem_euclid(1.0);
         let y_adjusted = x.rem_euclid(1.0);
 

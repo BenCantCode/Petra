@@ -2,16 +2,15 @@
 name = "petra"
 version = "0.1.0"
 authors = ["BenCantCode"]
-edition = "2018"
+edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = "0.4"
-noise = "0.6.0"
-bevy_fly_camera = "0.6.0"
-goshawk = "0.1.0"
-rand = "0.8.0"
-image = "0.23.9"
-bevy_mod_picking = "0.3.7"
-bevy_egui = "0.1"
+bevy = "^0.6"
+bevy_asset = "^0.6"
+noise = "0.7.0"
+rand = "0.8.4"
+image = "0.23.14"
+bevy_mod_picking = "^0.5.1"
+bevy_egui = "0.10.0"

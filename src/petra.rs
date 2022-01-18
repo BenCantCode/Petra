@@ -4,5 +4,5 @@ pub mod setup;
 pub mod modify;
 pub mod ui;
 pub mod terrain;
-pub mod shader;
+pub mod material;
 pub mod tools;
