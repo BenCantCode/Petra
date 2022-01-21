@@ -11,13 +11,12 @@ use bevy::render::view::VisibleEntities;
 
 fn startup(mut commands: Commands) {
     // set up the camera
-    let mut camera = PerspectiveCameraBundle::new_3d();
-    //camera.orthographic_projection.scale = 100.0;
+    let mut camera = OrthographicCameraBundle::new_3d();
+    camera.orthographic_projection.scale = 100.0;
     camera.transform = Transform::from_xyz(-100.0, 100.0, 0.0).looking_at(Vec3::ZERO, Vec3::Y);
     commands
         .spawn_bundle(camera)
         .insert_bundle(PickingCameraBundle::default());
-        //.insert(FlyCamera::default());
 }
 
 fn update(mut query: Query<(&Camera, &mut Transform)>, keyboard_input: Res<Input<KeyCode>>){

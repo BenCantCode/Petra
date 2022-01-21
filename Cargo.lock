@@ -506,9 +506,9 @@ dependencies = [
 
 [[package]]
 name = "bevy_mod_raycast"
-version = "0.3.4"
+version = "0.3.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8387ffd943ba472342b0bfdc05a776ef34d84f9ad1402d01134b73179a39f6d6"
+checksum = "3a662214992e48031eff8f241ce43781fbe7d420f13a6286cf0b3f436e82936e"
 dependencies = [
  "bevy",
 ]
@@ -2562,6 +2562,7 @@ dependencies = [
  "bevy_asset",
  "bevy_egui",
  "bevy_mod_picking",
+ "bevy_mod_raycast",
  "image",
  "noise",
  "rand 0.8.4",
