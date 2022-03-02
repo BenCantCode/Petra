@@ -32,7 +32,7 @@ struct Cursor {
     x: f32;
     y: f32;
     radius: f32;
-    govering: u32;
+    hovering: u32;
 };
 
 [[group(2), binding(0)]]
