@@ -13,7 +13,7 @@ use bevy::{
         },
         render_resource::*,
         renderer::{RenderDevice, RenderQueue},
-        view::{ComputedVisibility, ExtractedView, Msaa, Visibility},
+        view::{ExtractedView, Msaa},
         RenderApp, RenderStage,
     },
 };

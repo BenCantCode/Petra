@@ -16,7 +16,7 @@ use bevy_egui::{
 use bevy_mod_picking::*;
 use petra::modify::{SelectedTool, Tool};
 
-use super::camera::CameraPlugin;
+use super::{camera::CameraPlugin, terrain::Terrain};
 
 fn setup_scene(
     mut commands: Commands,
@@ -60,7 +60,7 @@ pub fn setup() {
         .add_plugin(CameraPlugin)
         .run();
 }
-fn ui_example(egui_context: Res<EguiContext>, mut selected_tool: ResMut<SelectedTool>) {
+fn ui_example(egui_context: Res<EguiContext>, mut selected_tool: ResMut<SelectedTool>, terrain: Res<Terrain>) {
     let ctx = egui_context.ctx();
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         // The top panel is often a good place for a menu bar:
@@ -68,6 +68,9 @@ fn ui_example(egui_context: Res<EguiContext>, mut selected_tool: ResMut<Selected
             egui::menu::menu_button(ui, "File", |ui| {
                 if ui.button("Quit").clicked() {
                     std::process::exit(0);
+                }
+                if ui.button("Save").clicked() {
+                    terrain.data.save_to_exr("test.exr").unwrap();
                 }
             });
         });
