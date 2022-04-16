@@ -20,7 +20,7 @@ impl Plugin for Modify {
                 radius: 10.0,
                 hovering: 1,
             })
-            .add_system(modify_system.system());
+            .add_system(modify_system);
     }
 }
 
@@ -46,9 +46,9 @@ fn modify_system(
     mouse_input: ResMut<Input<MouseButton>>,
     mut selected_tool: ResMut<SelectedTool>,
     mut cursor_position: ResMut<CursorPosition>,
-    egui_ctx: Res<EguiContext>,
+    mut egui_ctx: ResMut<EguiContext>,
 ) {
-    if !egui_ctx.ctx().wants_pointer_input() {
+    if !egui_ctx.ctx_mut().wants_pointer_input() {
         let cast_source = camera.iter().next().unwrap();
 
         if mouse_input.just_pressed(MouseButton::Left) {

@@ -2,7 +2,8 @@ use std::borrow::Cow;
 
 use crate::petra::modify::CursorPosition;
 use crate::petra::terrain::*;
-use bevy::render::render_resource::PrimitiveTopology;
+use bevy::render::mesh::MeshVertexAttribute;
+use bevy::render::render_resource::{PrimitiveTopology, VertexFormat};
 use bevy::{
     math::vec2,
     render::{mesh::Mesh},
@@ -14,6 +15,9 @@ use bevy::{prelude::*};
 use bevy_mod_picking::PickableBundle;
 
 use super::material::TerrainMaterial;
+
+pub const ATTRIBUTE_REAL_POSITION: MeshVertexAttribute =
+    MeshVertexAttribute::new("Custom", 142767822, VertexFormat::Float32x2);
 
 #[derive(Component)]
 pub struct ChunkComponent((i32, i32));
@@ -218,10 +222,10 @@ pub fn generate_mesh(terrain: &Terrain, chunk_coordinates: (i32, i32)) -> Mesh {
     }
 
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    mesh.set_attribute("Vertex_Position", positions);
-    mesh.set_attribute("Vertex_Normal", normals);
-    mesh.set_attribute("Vertex_Uv", uvs);
-    mesh.set_attribute("Vertex_RealPosition", real_positions); // Hack: Use Vertex_Uv to pass in real position.
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh.insert_attribute(ATTRIBUTE_REAL_POSITION, real_positions); // Hack: Use Vertex_Uv to pass in real position.
     mesh.set_indices(Some(bevy::render::mesh::Indices::U32(indices)));
 
     mesh

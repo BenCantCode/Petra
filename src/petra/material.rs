@@ -7,18 +7,20 @@ use bevy::{
     },
     prelude::*,
     render::{
+        mesh::MeshVertexBufferLayout,
+        render_asset::RenderAssets,
         render_phase::{
             AddRenderCommand, DrawFunctions, EntityRenderCommand, RenderCommandResult, RenderPhase,
             SetItemPipeline, TrackedRenderPass,
         },
         render_resource::*,
         renderer::{RenderDevice, RenderQueue},
-        view::{ExtractedView, Msaa},
+        view::{ComputedVisibility, ExtractedView, Msaa, Visibility},
         RenderApp, RenderStage,
     },
 };
 
-use super::modify::CursorPosition;
+use super::{modify::CursorPosition, mesh::ATTRIBUTE_REAL_POSITION};
 
 #[derive(Component)]
 pub struct TerrainMaterial;
@@ -27,10 +29,10 @@ pub struct TerrainMaterialPlugin;
 
 impl Plugin for TerrainMaterialPlugin {
     fn build(&self, app: &mut App) {
-        let render_device = app.world.get_resource::<RenderDevice>().unwrap();
+        let render_device = app.world.resource::<RenderDevice>();
         let buffer = render_device.create_buffer(&BufferDescriptor {
             label: Some("cursor uniform buffer"),
-            size: 16,
+            size: std::mem::size_of::<ExtractedCursor>() as u64,
             usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
             mapped_at_creation: false,
         });
@@ -41,8 +43,8 @@ impl Plugin for TerrainMaterialPlugin {
                 buffer,
                 bind_group: None,
             })
-            .init_resource::<CustomPipeline>()
-            .init_resource::<SpecializedPipelines<CustomPipeline>>()
+            .init_resource::<TerrainPipeline>()
+            .init_resource::<SpecializedMeshPipelines<TerrainPipeline>>()
             .add_system_to_stage(RenderStage::Extract, extract_cursor)
             .add_system_to_stage(RenderStage::Extract, extract_terrain_material)
             .add_system_to_stage(RenderStage::Prepare, prepare_cursor)
@@ -65,14 +67,16 @@ fn extract_terrain_material(
     commands.insert_or_spawn_batch(values);
 }
 
-// add each entity with a mesh and a `TerrainMaterial` to every view's `Transparent3d` render phase using the `CustomPipeline`
+// add each entity with a mesh and a `CustomMaterial` to every view's `Transparent3d` render phase using the `CustomPipeline`
+#[allow(clippy::too_many_arguments)]
 fn queue_custom(
     transparent_3d_draw_functions: Res<DrawFunctions<Transparent3d>>,
-    custom_pipeline: Res<CustomPipeline>,
+    custom_pipeline: Res<TerrainPipeline>,
     msaa: Res<Msaa>,
-    mut pipelines: ResMut<SpecializedPipelines<CustomPipeline>>,
-    mut pipeline_cache: ResMut<RenderPipelineCache>,
-    material_meshes: Query<(Entity, &MeshUniform), (With<Handle<Mesh>>, With<TerrainMaterial>)>,
+    mut pipelines: ResMut<SpecializedMeshPipelines<TerrainPipeline>>,
+    mut pipeline_cache: ResMut<PipelineCache>,
+    render_meshes: Res<RenderAssets<Mesh>>,
+    material_meshes: Query<(Entity, &MeshUniform, &Handle<Mesh>), With<TerrainMaterial>>,
     mut views: Query<(&ExtractedView, &mut RenderPhase<Transparent3d>)>,
 ) {
     let draw_custom = transparent_3d_draw_functions
@@ -82,18 +86,22 @@ fn queue_custom(
 
     let key = MeshPipelineKey::from_msaa_samples(msaa.samples)
         | MeshPipelineKey::from_primitive_topology(PrimitiveTopology::TriangleList);
-    let pipeline = pipelines.specialize(&mut pipeline_cache, &custom_pipeline, key);
 
     for (view, mut transparent_phase) in views.iter_mut() {
         let view_matrix = view.transform.compute_matrix();
         let view_row_2 = view_matrix.row(2);
-        for (entity, mesh_uniform) in material_meshes.iter() {
-            transparent_phase.add(Transparent3d {
-                entity,
-                pipeline,
-                draw_function: draw_custom,
-                distance: view_row_2.dot(mesh_uniform.transform.col(3)),
-            });
+        for (entity, mesh_uniform, mesh_handle) in material_meshes.iter() {
+            if let Some(mesh) = render_meshes.get(mesh_handle) {
+                let pipeline = pipelines
+                    .specialize(&mut pipeline_cache, &custom_pipeline, key, &mesh.layout)
+                    .unwrap();
+                transparent_phase.add(Transparent3d {
+                    entity,
+                    pipeline,
+                    draw_function: draw_custom,
+                    distance: view_row_2.dot(mesh_uniform.transform.col(3)),
+                });
+            }
         }
     }
 }
@@ -127,25 +135,23 @@ fn prepare_cursor(
     cursor_meta: ResMut<CursorMeta>,
     render_queue: Res<RenderQueue>,
 ) {
-    render_queue.write_buffer(&cursor_meta.buffer, 0, bevy::core::cast_slice(&[cursor.x]));
-    render_queue.write_buffer(&cursor_meta.buffer, 4, bevy::core::cast_slice(&[cursor.y]));
     render_queue.write_buffer(
         &cursor_meta.buffer,
-        8,
-        bevy::core::cast_slice(&[cursor.radius]),
+        0,
+        bevy::core::cast_slice(&[cursor.x, cursor.y, cursor.radius]),
     );
     render_queue.write_buffer(
         &cursor_meta.buffer,
         12,
         bevy::core::cast_slice(&[cursor.hovering]),
-    );
+    )
 }
 
 // create a bind group for the cursor uniform buffer
 fn queue_cursor_bind_group(
     render_device: Res<RenderDevice>,
     mut cursor_meta: ResMut<CursorMeta>,
-    pipeline: Res<CustomPipeline>,
+    pipeline: Res<TerrainPipeline>,
 ) {
     let bind_group = render_device.create_bind_group(&BindGroupDescriptor {
         label: None,
@@ -158,13 +164,13 @@ fn queue_cursor_bind_group(
     cursor_meta.bind_group = Some(bind_group);
 }
 
-pub struct CustomPipeline {
+pub struct TerrainPipeline {
     shader: Handle<Shader>,
     mesh_pipeline: MeshPipeline,
     cursor_bind_group_layout: BindGroupLayout,
 }
 
-impl FromWorld for CustomPipeline {
+impl FromWorld for TerrainPipeline {
     fn from_world(world: &mut World) -> Self {
         let world = world.cell();
         let asset_server = world.get_resource::<AssetServer>().unwrap();
@@ -180,7 +186,7 @@ impl FromWorld for CustomPipeline {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: BufferSize::new(16),
+                        min_binding_size: BufferSize::new(std::mem::size_of::<ExtractedCursor>() as u64),
                     },
                     count: None,
                 }],
@@ -188,7 +194,7 @@ impl FromWorld for CustomPipeline {
 
         let mesh_pipeline = world.get_resource::<MeshPipeline>().unwrap();
 
-        CustomPipeline {
+        TerrainPipeline {
             shader,
             mesh_pipeline: mesh_pipeline.clone(),
             cursor_bind_group_layout,
@@ -196,52 +202,30 @@ impl FromWorld for CustomPipeline {
     }
 }
 
-impl SpecializedPipeline for CustomPipeline {
+impl SpecializedMeshPipeline for TerrainPipeline {
     type Key = MeshPipelineKey;
 
-    fn specialize(&self, key: Self::Key) -> RenderPipelineDescriptor {
-        let mut descriptor = self.mesh_pipeline.specialize(key);
+    fn specialize(
+        &self,
+        key: Self::Key,
+        layout: &MeshVertexBufferLayout,
+    ) -> Result<RenderPipelineDescriptor, SpecializedMeshPipelineError> {
+        let mut descriptor = self.mesh_pipeline.specialize(key, layout)?;
         descriptor.vertex.shader = self.shader.clone();
-        let array_stride = 40;
-        let vertex_attributes = vec![
-            // Position
-            VertexAttribute {
-                format: VertexFormat::Float32x3,
-                offset: 12,
-                shader_location: 0,
-            },
-            // Normal
-            VertexAttribute {
-                format: VertexFormat::Float32x3,
-                offset: 0,
-                shader_location: 1,
-            },
-            // Real Position
-            VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: 24,
-                shader_location: 3,
-            },
-            // Uv
-            VertexAttribute {
-                format: VertexFormat::Float32x2,
-                offset: 32,
-                shader_location: 2,
-            },
-        ];
-        let array_stride = 40;
-        descriptor.vertex.buffers = vec![VertexBufferLayout {
-            array_stride: array_stride,
-            step_mode: VertexStepMode::Vertex,
-            attributes: vertex_attributes,
-        }];
+        let vertex_layout = layout.get_layout(&[
+            Mesh::ATTRIBUTE_POSITION.at_shader_location(0),
+            Mesh::ATTRIBUTE_NORMAL.at_shader_location(1),
+            Mesh::ATTRIBUTE_UV_0.at_shader_location(2),
+            ATTRIBUTE_REAL_POSITION.at_shader_location(3),
+        ])?;
+        descriptor.vertex.buffers = vec![vertex_layout];
         descriptor.fragment.as_mut().unwrap().shader = self.shader.clone();
         descriptor.layout = Some(vec![
             self.mesh_pipeline.view_layout.clone(),
             self.mesh_pipeline.mesh_layout.clone(),
             self.cursor_bind_group_layout.clone(),
         ]);
-        descriptor
+        Ok(descriptor)
     }
 }
 
@@ -249,12 +233,12 @@ type DrawCustom = (
     SetItemPipeline,
     SetMeshViewBindGroup<0>,
     SetMeshBindGroup<1>,
-    SetTimeBindGroup<2>,
+    SetCursorBindGroup<2>,
     DrawMesh,
 );
 
-struct SetTimeBindGroup<const I: usize>;
-impl<const I: usize> EntityRenderCommand for SetTimeBindGroup<I> {
+struct SetCursorBindGroup<const I: usize>;
+impl<const I: usize> EntityRenderCommand for SetCursorBindGroup<I> {
     type Param = SRes<CursorMeta>;
 
     fn render<'w>(

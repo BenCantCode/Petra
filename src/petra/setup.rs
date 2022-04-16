@@ -53,15 +53,15 @@ pub fn setup() {
         .add_plugin(TerrainMaterialPlugin)
         .add_plugin(petra::modify::Modify)
         .add_plugin(EguiPlugin)
-        .add_system(ui_example.system())
-        .add_startup_system(setup_scene.system())
+        .add_system(ui_example)
+        .add_startup_system(setup_scene)
         .add_plugin(PickingPlugin)
         .add_plugin(petra::mesh::TerrainMeshPlugin)
         .add_plugin(CameraPlugin)
         .run();
 }
-fn ui_example(egui_context: Res<EguiContext>, mut selected_tool: ResMut<SelectedTool>, terrain: Res<Terrain>) {
-    let ctx = egui_context.ctx();
+fn ui_example(mut egui_context: ResMut<EguiContext>, mut selected_tool: ResMut<SelectedTool>, terrain: Res<Terrain>) {
+    let ctx = egui_context.ctx_mut();
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         // The top panel is often a good place for a menu bar:
         egui::menu::bar(ui, |ui| {
