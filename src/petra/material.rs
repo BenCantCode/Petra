@@ -15,12 +15,12 @@ use bevy::{
         },
         render_resource::*,
         renderer::{RenderDevice, RenderQueue},
-        view::{ComputedVisibility, ExtractedView, Msaa, Visibility},
+        view::{ExtractedView, Msaa},
         RenderApp, RenderStage,
     },
 };
 
-use super::{modify::CursorPosition, mesh::ATTRIBUTE_REAL_POSITION};
+use super::{mesh::ATTRIBUTE_REAL_POSITION, modify::CursorPosition};
 
 #[derive(Component)]
 pub struct TerrainMaterial;
@@ -186,7 +186,9 @@ impl FromWorld for TerrainPipeline {
                     ty: BindingType::Buffer {
                         ty: BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: BufferSize::new(std::mem::size_of::<ExtractedCursor>() as u64),
+                        min_binding_size: BufferSize::new(
+                            std::mem::size_of::<ExtractedCursor>() as u64
+                        ),
                     },
                     count: None,
                 }],

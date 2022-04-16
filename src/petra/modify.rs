@@ -1,7 +1,6 @@
 pub struct Modify;
-use super::{material::TerrainMaterial, terrain, tools};
+use super::{terrain, tools};
 use bevy::{
-    input::mouse::{MouseButtonInput, MouseWheel},
     math::{vec2, vec3},
     prelude::*,
     reflect::TypeUuid,

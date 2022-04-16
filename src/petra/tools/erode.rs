@@ -1,4 +1,4 @@
-use crate::petra::terrain::{Terrain};
+use crate::petra::terrain::Terrain;
 use bevy::math::{vec2, Vec2};
 use rand::random;
 use std::f32;

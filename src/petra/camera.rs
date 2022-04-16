@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use bevy_mod_picking::{PickingCameraBundle};
+use bevy_mod_picking::PickingCameraBundle;
 
 pub struct CameraPlugin;
 
@@ -13,10 +13,10 @@ fn startup(mut commands: Commands) {
         .insert_bundle(PickingCameraBundle::default());
 }
 
-fn update(mut query: Query<(&Camera, &mut Transform)>, keyboard_input: Res<Input<KeyCode>>){
-    let (camera, mut transform) = query.single_mut();
+fn update(mut query: Query<(&Camera, &mut Transform)>, keyboard_input: Res<Input<KeyCode>>) {
+    let (_camera, mut transform) = query.single_mut();
     if keyboard_input.pressed(KeyCode::W) {
-        let forward = transform.forward(); // "forward" seems to be reversed.
+        let _forward = transform.forward(); // "forward" seems to be reversed.
         transform.translation += Vec3::new(1.0, 0.0, 0.0);
     }
     if keyboard_input.pressed(KeyCode::S) {

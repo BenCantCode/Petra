@@ -1,16 +1,10 @@
 use crate::petra::{self, material::TerrainMaterialPlugin};
 use bevy::prelude::*;
-use egui::{
-    style::{WidgetVisuals, Widgets},
-    Color32, Frame, Style,
-};
+
 //use goshawk::{rts_camera_system, RtsCamera, ZoomSettings, PanSettings};
-use bevy::{
-    reflect::TypeUuid,
-    render::{mesh::shape, view::VisibleEntities},
-};
+
 use bevy_egui::{
-    egui::{self, style::Visuals},
+    egui::{self},
     EguiContext, EguiPlugin,
 };
 use bevy_mod_picking::*;
@@ -21,8 +15,8 @@ use super::{camera::CameraPlugin, terrain::Terrain};
 fn setup_scene(
     mut commands: Commands,
     mut windows: ResMut<Windows>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
+    _meshes: ResMut<Assets<Mesh>>,
+    _materials: ResMut<Assets<StandardMaterial>>,
 ) {
     windows
         .get_primary_mut()
@@ -60,7 +54,11 @@ pub fn setup() {
         .add_plugin(CameraPlugin)
         .run();
 }
-fn ui_example(mut egui_context: ResMut<EguiContext>, mut selected_tool: ResMut<SelectedTool>, terrain: Res<Terrain>) {
+fn ui_example(
+    mut egui_context: ResMut<EguiContext>,
+    mut selected_tool: ResMut<SelectedTool>,
+    terrain: Res<Terrain>,
+) {
     let ctx = egui_context.ctx_mut();
     egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
         // The top panel is often a good place for a menu bar:

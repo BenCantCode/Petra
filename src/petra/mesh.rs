@@ -1,17 +1,11 @@
 use std::borrow::Cow;
 
-use crate::petra::modify::CursorPosition;
 use crate::petra::terrain::*;
+use bevy::math::vec3;
+use bevy::prelude::*;
 use bevy::render::mesh::MeshVertexAttribute;
 use bevy::render::render_resource::{PrimitiveTopology, VertexFormat};
-use bevy::{
-    math::vec2,
-    render::{mesh::Mesh},
-};
-use bevy::{
-    math::vec3,
-};
-use bevy::{prelude::*};
+use bevy::{math::vec2, render::mesh::Mesh};
 use bevy_mod_picking::PickableBundle;
 
 use super::material::TerrainMaterial;
@@ -31,7 +25,10 @@ impl Plugin for TerrainMeshPlugin {
 const RENDER_DISTANCE: i32 = 3;
 
 fn find_ray_ground_intersection(pos: Vec3, dir: Vec3) -> Vec2 {
-    vec2(dir.x * (pos.y/dir.y) + pos.x, dir.z * (pos.y/dir.y) + pos.z)
+    vec2(
+        dir.x * (pos.y / dir.y) + pos.x,
+        dir.z * (pos.y / dir.y) + pos.z,
+    )
 }
 
 fn chunk_mesh_system(
@@ -42,12 +39,16 @@ fn chunk_mesh_system(
     mut terrain: ResMut<Terrain>,
 ) {
     let camera_translation = camera_query.iter().next().unwrap().1.translation;
-    let camera_direction = camera_query.iter().next().unwrap().1.rotation.mul_vec3(vec3(0.0, 1.0, 0.0));
+    let camera_direction = camera_query
+        .iter()
+        .next()
+        .unwrap()
+        .1
+        .rotation
+        .mul_vec3(vec3(0.0, 1.0, 0.0));
     let looking_at = find_ray_ground_intersection(camera_translation, camera_direction);
-    let camera_chunk_coordinates = TerrainData::get_terrain_chunk_coordinates((
-        looking_at.x as i32,
-        looking_at.y as i32,
-    ));
+    let camera_chunk_coordinates =
+        TerrainData::get_terrain_chunk_coordinates((looking_at.x as i32, looking_at.y as i32));
 
     for x in (camera_chunk_coordinates.0 - RENDER_DISTANCE)
         ..(camera_chunk_coordinates.0 + RENDER_DISTANCE + 1)
@@ -66,7 +67,8 @@ fn chunk_mesh_system(
                 println!("Spawning mesh! {}, {}", x, z);
                 let terrain_mesh = generate_mesh(&terrain, (x, z));
                 let terrain_mesh_handle = meshes.add(terrain_mesh);
-                commands.spawn_bundle((
+                commands
+                    .spawn_bundle((
                         terrain_mesh_handle,
                         Transform::from_translation(vec3(
                             (x * TerrainDataChunk::size as i32) as f32,
@@ -112,31 +114,37 @@ pub fn generate_mesh(terrain: &Terrain, chunk_coordinates: (i32, i32)) -> Mesh {
         chunk_coordinates.1 * TerrainDataChunk::size as i32,
     );
 
-    let empty_chunk = TerrainDataChunk::new(chunk_coordinates);
-    let main_chunk: Cow<TerrainDataChunk> = if let Some(i) = terrain
-        .data
-        .chunks
-        .get(&chunk_coordinates) {
+    let _empty_chunk = TerrainDataChunk::new(chunk_coordinates);
+    let main_chunk: Cow<TerrainDataChunk> =
+        if let Some(i) = terrain.data.chunks.get(&chunk_coordinates) {
             Cow::Borrowed(i)
-        }else{
+        } else {
             Cow::Owned(TerrainDataChunk::new(chunk_coordinates))
         };
     let right_chunk: Cow<TerrainDataChunk> = if let Some(i) = terrain
         .data
         .chunks
-        .get(&(chunk_coordinates.0 + 1, chunk_coordinates.1)) {
-            Cow::Borrowed(i)
-        }else{
-            Cow::Owned(TerrainDataChunk::new((chunk_coordinates.0 + 1, chunk_coordinates.1)))
-        };
+        .get(&(chunk_coordinates.0 + 1, chunk_coordinates.1))
+    {
+        Cow::Borrowed(i)
+    } else {
+        Cow::Owned(TerrainDataChunk::new((
+            chunk_coordinates.0 + 1,
+            chunk_coordinates.1,
+        )))
+    };
     let bottom_chunk: Cow<TerrainDataChunk> = if let Some(i) = terrain
         .data
         .chunks
-        .get(&(chunk_coordinates.0, chunk_coordinates.1 + 1)) {
-            Cow::Borrowed(i)
-        }else{
-            Cow::Owned(TerrainDataChunk::new((chunk_coordinates.0, chunk_coordinates.1 + 1)))
-        };
+        .get(&(chunk_coordinates.0, chunk_coordinates.1 + 1))
+    {
+        Cow::Borrowed(i)
+    } else {
+        Cow::Owned(TerrainDataChunk::new((
+            chunk_coordinates.0,
+            chunk_coordinates.1 + 1,
+        )))
+    };
     let bottom_right_value = terrain
         .data
         .chunks
@@ -168,7 +176,10 @@ pub fn generate_mesh(terrain: &Terrain, chunk_coordinates: (i32, i32)) -> Mesh {
                 }
             }
 
-            real_positions.push([(x as i32 + (main_chunk.coords.0 * TerrainDataChunk::size as i32)) as f32, (z as i32 + (main_chunk.coords.1 * TerrainDataChunk::size as i32)) as f32]);
+            real_positions.push([
+                (x as i32 + (main_chunk.coords.0 * TerrainDataChunk::size as i32)) as f32,
+                (z as i32 + (main_chunk.coords.1 * TerrainDataChunk::size as i32)) as f32,
+            ]);
 
             // Calculate normals
             let up = terrain.data[(
