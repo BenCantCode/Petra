@@ -1,5 +1,8 @@
+use std::time::Duration;
+
 use crate::petra::{self, material::TerrainMaterialPlugin};
 use bevy::prelude::*;
+use bevy::winit::UpdateMode;
 
 //use goshawk::{rts_camera_system, RtsCamera, ZoomSettings, PanSettings};
 
@@ -32,12 +35,6 @@ fn setup_scene(
         transform: Transform::from_xyz(4.0, 8.0, 4.0),
         ..Default::default()
     });
-    /*commands.spawn_bundle(PbrBundle {
-        mesh: meshes.add(Mesh::from(shape::Cube { size: 1.0 })),
-        material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
-        transform: Transform::from_xyz(0.0, 0.5, 0.0),
-        ..Default::default()
-    });*/
 }
 
 pub fn setup() {
@@ -52,6 +49,7 @@ pub fn setup() {
         .add_plugin(PickingPlugin)
         .add_plugin(petra::mesh::TerrainMeshPlugin)
         .add_plugin(CameraPlugin)
+        .insert_resource(UpdateMode::ReactiveLowPower { max_wait: ( Duration::from_secs(10) ) })
         .run();
 }
 fn ui_example(
